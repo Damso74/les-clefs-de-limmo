@@ -1,12 +1,20 @@
 import { contractMockRepo, propertyMockRepo, unitMockRepo } from "@/domain/repositories";
+import { getContractRenewalStatus } from "@/domain/services/dashboard.service";
 import { ContractsClient } from "./ContractsClient";
 
+const CONTRACT_EXPIRY_DAYS = 30;
+
 export default async function ContractsPage() {
-  const [contracts, properties, units] = await Promise.all([
+  const [contractsRaw, properties, units] = await Promise.all([
     contractMockRepo.list(),
     propertyMockRepo.list(),
     unitMockRepo.list(),
   ]);
+
+  const contracts = contractsRaw.map((c) => ({
+    ...c,
+    computedStatus: getContractRenewalStatus(c, CONTRACT_EXPIRY_DAYS),
+  }));
 
   const stats = {
     total: contracts.length,

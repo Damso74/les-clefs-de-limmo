@@ -16,6 +16,32 @@ import type {
 } from "@/domain/types";
 import { today, daysBetween, addDays, getLastMonths } from "@/lib/utils";
 
+/** Contrat à renouveler = expiré ou expire dans les X jours */
+export function isContractToRenew(contract: Contract, contractExpiryDays: number): boolean {
+  if (!contract.endDate) return false;
+  const todayStr = today();
+  const threshold = addDays(todayStr, contractExpiryDays);
+  return contract.endDate < todayStr || contract.endDate <= threshold;
+}
+
+export function getContractRenewalStatus(
+  contract: Contract,
+  contractExpiryDays: number
+): "OK" | "Expire <30j" | "Expiré" {
+  if (!contract.endDate) return "OK";
+  const todayStr = today();
+  const threshold = addDays(todayStr, contractExpiryDays);
+  if (contract.endDate < todayStr) return "Expiré";
+  if (contract.endDate <= threshold) return "Expire <30j";
+  return "OK";
+}
+
+/** Paiement en retard = échéance dépassée et pas encore payé en totalité */
+export function isPaymentLate(payment: Payment): boolean {
+  const todayStr = today();
+  return payment.dueDate < todayStr && payment.amountPaid < payment.amountDue;
+}
+
 interface DashboardConfig {
   vacantDaysThreshold: number;
   contractExpiryDays: number;
@@ -29,6 +55,9 @@ const DEFAULT_CONFIG: DashboardConfig = {
 /**
  * Compute KPIs for a given month
  */
+/** Règle unique : cashflow net du mois = encaissés du mois − (travaux annuels / 12) */
+const NET_CASHFLOW_FORMULA = "encaissés du mois − (travaux annuels / 12)";
+
 export function computeKpis(
   units: Unit[],
   payments: Payment[],
@@ -37,6 +66,8 @@ export function computeKpis(
 ): KpiData {
   const totalUnits = units.length;
   const occupiedUnits = units.filter((u) => u.status === "Occupé").length;
+  const vacantUnits = units.filter((u) => u.status === "Vacant").length;
+  const inWorksUnits = units.filter((u) => u.status === "En travaux").length;
   const occupancyRate =
     totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
 
@@ -58,18 +89,21 @@ export function computeKpis(
     )
     .reduce((sum, m) => sum + (m.costReal || 0), 0);
 
-  // Simple cashflow calculation
+  // Règle unique : encaissés du mois − (travaux annuels / 12)
   const netCashflow = rentCollected - maintenanceCostYTD / 12;
 
   return {
     totalUnits,
     occupiedUnits,
+    vacantUnits,
+    inWorksUnits,
     occupancyRate,
     rentBilled,
     rentCollected,
     unpaidRent,
     maintenanceCostYTD,
     netCashflow,
+    netCashflowFormula: NET_CASHFLOW_FORMULA,
   };
 }
 
@@ -135,12 +169,9 @@ export function computeAlerts(
     }
   });
 
-  // Payment late alerts
+  // Payment late alerts : même règle que /payments (today > dueDate ET amountPaid < amountDue)
   payments.forEach((payment) => {
-    if (
-      payment.computedStatus === "En retard" ||
-      (payment.dueDate < todayStr && payment.amountPaid < payment.amountDue)
-    ) {
+    if (isPaymentLate(payment)) {
       const daysLate = daysBetween(payment.dueDate, todayStr);
       const amountDue = payment.amountDue - payment.amountPaid;
       alerts.push({
@@ -231,6 +262,7 @@ export function computeMonthlyFinances(
 
 /**
  * Get dashboard data (KPIs + alerts + chart data)
+ * Contrats à renouveler et paiements en retard : même règle que /contracts et /payments.
  */
 export function getDashboardData(
   units: Unit[],
@@ -244,6 +276,11 @@ export function getDashboardData(
   const fullConfig = { ...DEFAULT_CONFIG, ...config };
   const last3Months = getLastMonths(3);
 
+  const contractsToRenewCount = contracts.filter((c) =>
+    isContractToRenew(c, fullConfig.contractExpiryDays)
+  ).length;
+  const paymentsLateCount = payments.filter(isPaymentLate).length;
+
   return {
     kpis: computeKpis(units, payments, maintenance, selectedMonth),
     alerts: computeAlerts(
@@ -255,5 +292,7 @@ export function getDashboardData(
       fullConfig
     ),
     monthlyFinances: computeMonthlyFinances(payments, last3Months),
+    contractsToRenewCount,
+    paymentsLateCount,
   };
 }

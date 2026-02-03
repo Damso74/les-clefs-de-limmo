@@ -22,12 +22,16 @@ export interface Alert {
 export interface KpiData {
   totalUnits: number;
   occupiedUnits: number;
+  vacantUnits: number;
+  inWorksUnits: number;
   occupancyRate: number;
   rentBilled: number;
   rentCollected: number;
   unpaidRent: number;
   maintenanceCostYTD: number;
   netCashflow: number;
+  /** Formule affichée dans le tooltip (ex: "encaissés − travaux/12") */
+  netCashflowFormula?: string;
 }
 
 export interface MonthlyFinance {

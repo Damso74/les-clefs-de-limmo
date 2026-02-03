@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Plus } from "lucide-react";
 import type { Payment, Lease } from "@/domain/types";
+import { isPaymentLate } from "@/domain/services/dashboard.service";
 import { DataTable } from "@/components/tables/DataTable";
 import { paymentColumns } from "@/components/tables/columns";
 import { FilterButton } from "@/components/ui/FilterButton";
@@ -22,12 +23,16 @@ export function PaymentsClient({ payments: initialPayments, leases }: PaymentsCl
   const [filter, setFilter] = useState<FilterType>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const today = new Date().toISOString().split("T")[0];
+
   const filteredPayments = useMemo(() => {
     switch (filter) {
       case "paid":
         return payments.filter((p) => p.computedStatus === "Payé");
       case "late":
-        return payments.filter((p) => p.computedStatus === "En retard");
+        return payments.filter(
+          (p) => p.dueDate < today && p.amountPaid < p.amountDue
+        );
       case "unpaid":
         return payments.filter((p) => 
           p.computedStatus === "Non payé" || p.computedStatus === "Partiel"
@@ -35,12 +40,12 @@ export function PaymentsClient({ payments: initialPayments, leases }: PaymentsCl
       default:
         return payments;
     }
-  }, [payments, filter]);
+  }, [payments, filter, today]);
 
   const counts = {
     all: payments.length,
     paid: payments.filter((p) => p.computedStatus === "Payé").length,
-    late: payments.filter((p) => p.computedStatus === "En retard").length,
+    late: payments.filter(isPaymentLate).length,
     unpaid: payments.filter((p) => 
       p.computedStatus === "Non payé" || p.computedStatus === "Partiel"
     ).length,

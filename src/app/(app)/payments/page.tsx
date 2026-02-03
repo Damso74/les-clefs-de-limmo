@@ -1,4 +1,5 @@
 import { paymentMockRepo, leaseMockRepo } from "@/domain/repositories";
+import { isPaymentLate } from "@/domain/services/dashboard.service";
 import { PaymentsClient } from "./PaymentsClient";
 
 export default async function PaymentsPage() {
@@ -11,7 +12,7 @@ export default async function PaymentsPage() {
     total: payments.length,
     paid: payments.filter((p) => p.computedStatus === "Payé").length,
     partial: payments.filter((p) => p.computedStatus === "Partiel").length,
-    late: payments.filter((p) => p.computedStatus === "En retard").length,
+    late: payments.filter(isPaymentLate).length,
     unpaid: payments.filter((p) => p.computedStatus === "Non payé").length,
   };
 

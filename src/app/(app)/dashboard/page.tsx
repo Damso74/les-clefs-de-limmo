@@ -71,6 +71,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       alerts={dashboardData.alerts}
       monthlyFinances={dashboardData.monthlyFinances}
       selectedMonth={selectedMonth}
+      contractsToRenewCount={dashboardData.contractsToRenewCount}
+      paymentsLateCount={dashboardData.paymentsLateCount}
     />
   );
 }

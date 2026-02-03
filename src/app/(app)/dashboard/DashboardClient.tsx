@@ -64,6 +64,8 @@ interface DashboardClientProps {
   alerts: Alert[];
   monthlyFinances: MonthlyFinance[];
   selectedMonth: string;
+  contractsToRenewCount: number;
+  paymentsLateCount: number;
 }
 
 export function DashboardClient({
@@ -71,6 +73,8 @@ export function DashboardClient({
   alerts,
   monthlyFinances,
   selectedMonth,
+  contractsToRenewCount,
+  paymentsLateCount,
 }: DashboardClientProps) {
   const topAlerts = alerts.slice(0, 5);
   const [tourStep, setTourStep] = useState<number>(-1);
@@ -176,7 +180,7 @@ export function DashboardClient({
         <KpiCard
           title="Taux d'occupation"
           value={formatPercentage(kpis.occupancyRate)}
-          subtitle={`${kpis.totalUnits - kpis.occupiedUnits} vacant(s)`}
+          subtitle={`${kpis.vacantUnits + kpis.inWorksUnits} non occupé(s) (${kpis.vacantUnits} vacant(s), ${kpis.inWorksUnits} en travaux)`}
           icon={Users}
           variant={kpis.occupancyRate >= 90 ? "success" : kpis.occupancyRate >= 70 ? "default" : "warning"}
           href="/units"
@@ -220,6 +224,7 @@ export function DashboardClient({
         <KpiCard
           title="Cashflow net (mois)"
           value={formatMoney(kpis.netCashflow)}
+          subtitle={kpis.netCashflowFormula ? `calcul: ${kpis.netCashflowFormula}` : undefined}
           icon={PiggyBank}
           variant={kpis.netCashflow >= 0 ? "success" : "danger"}
           href="/payments"
@@ -263,7 +268,7 @@ export function DashboardClient({
                     Top 5 Alertes
                   </h2>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {alerts.length} alerte{alerts.length > 1 ? "s" : ""} au total
+                    {alerts.length} {alerts.length !== 1 ? "alertes" : "alerte"} au total
                   </p>
                 </div>
               </div>
@@ -325,7 +330,7 @@ export function DashboardClient({
           aria-label="Voir Contrats à renouveler"
         >
           <div className="text-3xl font-bold text-amber-600">
-            {alerts.filter((a) => a.type === "contract_expiring" || a.type === "contract_expired").length}
+            {contractsToRenewCount}
           </div>
           <div className="text-sm text-gray-500 mt-1">Contrats à renouveler</div>
         </Link>
@@ -335,7 +340,7 @@ export function DashboardClient({
           aria-label="Voir Paiements en retard"
         >
           <div className="text-3xl font-bold text-red-600">
-            {alerts.filter((a) => a.type === "payment_late").length}
+            {paymentsLateCount}
           </div>
           <div className="text-sm text-gray-500 mt-1">Paiements en retard</div>
         </Link>

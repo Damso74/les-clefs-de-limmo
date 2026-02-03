@@ -78,7 +78,7 @@ export function Topbar() {
                   <h3 className="font-semibold text-gray-900">Notifications</h3>
                   {hasAlerts && (
                     <span className="text-xs text-gray-500">
-                      {alerts.length} alerte{alerts.length > 1 ? "s" : ""}
+                      {alerts.length} {alerts.length !== 1 ? "alertes" : "alerte"}
                     </span>
                   )}
                 </div>
@@ -119,7 +119,7 @@ export function Topbar() {
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-medium shrink-0">
               AD
             </div>
-            <span className="text-sm font-medium text-gray-700 truncate">Admin Demo</span>
+            <span className="text-sm font-medium text-gray-700 truncate">Les Clefs de l&apos;Immo</span>
           </Link>
         </div>
       </div>
